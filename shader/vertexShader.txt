@@ -1,0 +1,41 @@
+#version 400 core
+
+attribute vec3 position;
+attribute vec2 textureCoords;
+attribute vec3 normal;
+
+varying vec2 pass_textureCoords;
+varying vec3 surfaceNormal;
+varying vec3 toLightVector;
+varying vec3 toCameraVector;
+varying float visibility;
+
+uniform mat4 u_MTransformation;
+uniform mat4 u_MProjection;
+uniform mat4 u_MView;
+uniform vec3 u_LightPosition;
+uniform float u_UseFakeLighting;
+
+const float density = 0.0035;
+const float gradient = 5.0;
+
+void main(){
+
+     vec4 worldPosition =  u_MTransformation * vec4(position, 1.0);
+     vec4 positionRelativeToCam = u_MView *worldPosition;
+     gl_Position = u_MProjection * positionRelativeToCam;
+
+     pass_textureCoords = textureCoords;
+     vec3 actualNormal = normal;
+     if(u_UseFakeLighting>0.5){
+          actualNormal = vec3(0.0, 1.0, 0.0);
+     }
+
+     surfaceNormal = vec3(u_MTransformation * vec4(normal,0.0));
+     toLightVector = u_LightPosition - vec3(worldPosition);
+     toCameraVector = (inverse(u_MView)*vec4(0.0,0.0,0.0,1.0)).xyz - worldPosition.xyz;
+
+     float distance = length(positionRelativeToCam.xyz);
+     visibility = exp(-pow((distance*density),gradient));
+     visibility = clamp(visibility,0.0,1.0);
+}
